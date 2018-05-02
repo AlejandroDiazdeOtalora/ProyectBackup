@@ -50,7 +50,7 @@ CREATE TABLE Equipo
     desripcion VARCHAR2 (100) NOT NULL ,
     puntos     VARCHAR2(3) NOT NULL ,
     puesto     VARCHAR2(2) NOT NULL ,
-    tipo       VARCHAR2(10),
+    tipo       VARCHAR2(10) ,
     Dueno_dni  VARCHAR2 (9) NOT NULL,
     CONSTRAINT Equipo_Dueno_FK FOREIGN KEY ( Dueno_dni ) REFERENCES Dueno ( dni )
   ) ;
