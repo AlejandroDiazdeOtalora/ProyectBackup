@@ -162,6 +162,12 @@ public class controlador {
 
     }
 
+    /**
+     * 
+     * @param nombre parametro de entrada para darle nombre a la liga
+     * @param fecha parametro de entrada para darle fecha de inicio a la liga
+     * @throws Exception 
+     */
     public static void generarLiga(String nombre, Calendar fecha) throws Exception {
         equipos = conexion.getEquipoBD().findEquipoEntities();
         formula = (((equipos.size() - 1) * equipos.size()) / ((equipos.size() - 1) * 2));
@@ -176,7 +182,7 @@ public class controlador {
             jornadas.add(j);
             conexion.getJornadaBD().create(j);
             for (int z = 0; z < formula / 2; z++) {
-                Partido p = null;
+                Partido p;
                 if (zig) {
                     for (int p1 = 0; p1 < formula / 2; p1++) {
                         p = new Partido(codigoPartido(), "Espana", j.getFechai());
@@ -202,11 +208,14 @@ public class controlador {
         System.out.println("");
 
     }
-    
+    /**
+     * 
+     * @return retorna un array bidimensional con todas las combinaciones posibles de partidos
+     */
     public static Equipo[][] generarPartidos() {
         boolean zig = true;
-        boolean stop = false;
-        int x = 0, y = 0, z = 0, t = 0, cont = 0;
+        boolean stop;
+        int x = 0, y = 0, z = 0, t, cont = 0;
         Equipo[][] equiposPartidos = new Equipo[(equipos.size()) * (equipos.size() - 1)][formula / 2];
         do {
             do {
@@ -243,7 +252,10 @@ public class controlador {
         } while (z < equiposPartidos.length);
         return equiposPartidos;
     }
-    
+    /**
+     * 
+     * @param calendar parametro de entrada con la fecha de incio de la busqueda de fines de semana
+     */
     public static void buscarFinesDeSemana(Calendar calendar) {
         finde = new ArrayList();
         int x = 0;
@@ -259,26 +271,18 @@ public class controlador {
         }
     }
 
-    public static List emparejar() throws Exception {
+    /**
+     * 
+     * @throws Exception 
+     */
+    public static void emparejar() throws Exception {
         boolean first = true, found = false, finished = false;
         equiposTemp = new ArrayList();
         int contador = 0, contacuatro = 0, contaTotal = 0;
         for (int x = 0; x < PartidosEquipo.length && finished == false; x++) {
             found = false;
             for (int y = 0; y < PartidosEquipo[y].length & found == false; y++) {
-                if (first) {
-                    equiposP.add(PartidosEquipo[x][y]);
-                    equiposTemp.add(PartidosEquipo[x][y]);
-                    PartidosEquipo[x][y] = null;
-                    if (y == PartidosEquipo[y].length - 1) {
-                        partidos.get(contador).setEquipoCollection(equiposP);
-                        conexion.getPartidoBD().edit(partidos.get(contador));
-                        contador++;
-                        contacuatro++;
-                        contaTotal++;
-                        first = false;
-                    }
-                } else if (!equiposTemp(PartidosEquipo[x][y]) && !equiposTemp(PartidosEquipo[x][y + 1]) && PartidosEquipo[x][y] != null && PartidosEquipo[x][y + 1] != null) {
+                 if (!equiposTemp(PartidosEquipo[x][y]) && !equiposTemp(PartidosEquipo[x][y + 1]) && PartidosEquipo[x][y] != null && PartidosEquipo[x][y + 1] != null) {
                     equiposP = new ArrayList();
                     for (int g = 0; g < PartidosEquipo[y].length; g++) {
                         equiposP.add(PartidosEquipo[x][g]);
@@ -303,10 +307,14 @@ public class controlador {
                     found = true;
                 }
             }
-        }
-        return equiposP;
+        }       
     }
 
+    /**
+     * 
+     * @param e parametro de entrada de el equipo a buscar en el en ArrayList temporal de equipos repetidos
+     * @return retorna true o false si lo ha encontrado o no
+     */
     public static boolean equiposTemp(Equipo e) {
         int x;
         for (x = 0; x < equiposTemp.size() && !equiposTemp.get(x).equals(e); x++) {}
@@ -315,14 +323,24 @@ public class controlador {
         return true;
     }
 
+    /**
+     * 
+     * @return retorna el codigo maximo de la liga +1 
+     */
     public static int codigoLiga() {
         return Integer.parseInt(conexion.getLigaBD().autoincrement());
     }
-
+    /**
+     * 
+     * @return retorna el codigo maximo de las jornadas +1 
+     */
     public static int codigoJornada() {
         return Integer.parseInt(conexion.getJornadaBD().autoincrement());
     }
-
+    /**
+     * 
+     * @return retorna el codigo maximo de los partidos +1 
+     */
     public static int codigoPartido() {
         return Integer.parseInt(conexion.getPartidoBD().autoincrement());
     }
