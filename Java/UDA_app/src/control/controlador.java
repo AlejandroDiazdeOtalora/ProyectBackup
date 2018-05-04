@@ -6,17 +6,17 @@
 package control;
 
 import Modelo.BD.*;
-import Modelo.BD.exceptions.PreexistingEntityException;
 import Modelo.UML.*;
 import java.util.*;
-import Views.Login.VLogin;
-import Views.Registro.VRegistro;
+import Views.VLogin.VLogin;
+import Views.VRegistro.VRegistro;
 import Views.VPrincipal.VPrincipal;
 import java.awt.Frame;
 import Views.JDError.JDError;
 import Views.JDInfo.JDInfo;
-import Views.JFLiga.VLiga;
-import static java.awt.SystemColor.window;
+import Views.VLiga.VLiga;
+import Views.VEquipo.VEquipo;
+import javax.swing.DefaultListModel;
 
 /**
  *
@@ -30,6 +30,7 @@ public class controlador {
     static Liga liga;
     static ArrayList finde;
     static ArrayList<Jornadas> jornadas;
+    static List<Equipo> equiposBD;
     static List<Equipo> equipos;
     static List<Partido> partidos;
     static Equipo[][] PartidosEquipo;
@@ -54,7 +55,7 @@ public class controlador {
                              + "\n"
                              + "▒█▀▀█ █▀▀█ █▀▀█ █▀▀█ ░ \n"
                              + "▒█░░░ █░░█ █▄▄▀ █░░█ ▄ \n"
-                             + "▒█▄▄█ ▀▀▀▀ ▀░▀▀ █▀▀▀ █ \n v0.5 alpha");
+                             + "▒█▄▄█ ▀▀▀▀ ▀░▀▀ █▀▀▀ █ \n v0.6 alpha");
             VPrincipal vp = new VPrincipal();
             vp.setVisible(true);
         } catch (Exception e) {
@@ -82,10 +83,16 @@ public class controlador {
         vp.setVisible(true);
     }
 
-    public static void toVRegistro(Frame ventana) {
+    public static void toVRegistro(Frame ventana, int tipo, String titulo, int tipoventana) {
         ventana.dispose();
-        VRegistro vr = new VRegistro();
+        VRegistro vr = new VRegistro(tipo, titulo, tipoventana);
         vr.setVisible(true);
+    }
+    
+    public static void toVEquipo(Frame ventana){
+        ventana.dispose();
+        VEquipo ve = new VEquipo();
+        ve.setVisible(true);
     }
 
     public static void JDError(Frame ventana, boolean modal, String mensaje) {
@@ -128,12 +135,23 @@ public class controlador {
             usu = c;
         }
         return login;
-
     }
 
     public static void cerrarSesion() {
         usu = null;
-
+    }
+    
+    public static boolean findNickname(String nick){
+        boolean encontrado = false;
+        List <Jugador> j = conexion.getJugadorBD().findJugadorEntities();
+        int x;
+        for(x = 0; x<j.size()&&!j.get(x).getNickname().equals(nick); x++){}
+            if(x!=j.size())
+                encontrado = true;
+            
+        return encontrado;
+                
+            
     }
 
     public static boolean registrarUsuario(String dni, String nombre, String apellido, String calle, String numero, String piso, String ciudad, String cp, String pais, String tel, String usuario, String pass, String tipo_persona) throws Exception {
@@ -152,6 +170,15 @@ public class controlador {
         correcto = true;
         return correcto;
     }
+    
+    public static boolean registrarJugador(String dni, String nickname, String sueldo, String nombre, String apellido, String calle, String numero, String piso, String ciudad, String cp, String pais, String tel) throws Exception{
+        
+        Jugador j1 = new Jugador(dni, nickname, Integer.parseInt(sueldo), nombre, apellido, calle, numero, piso, ciudad, cp, pais, tel);
+        tipoE = 1;
+        conexion.getJugadorBD().create(j1);
+        
+        return true;
+    }
 
     public static void destroyRegitro(String dni) {
         try {
@@ -159,17 +186,33 @@ public class controlador {
         } catch (Exception e) {
 
         }
-
+    }
+    
+    public static void setDuenos(javax.swing.JComboBox cb) throws Exception{
+        
+        List <Dueno> d = conexion.getDuenoBD().findDuenoEntities();
+        
+        for(Dueno du : d)
+            cb.addItem(du.getPersona().getNombre());
     }
 
-    /**
-     * 
-     * @param nombre parametro de entrada para darle nombre a la liga
-     * @param fecha parametro de entrada para darle fecha de inicio a la liga
-     * @throws Exception 
-     */
+    public static DefaultListModel<String> llenarLista(javax.swing.JList lista){
+        equiposBD = conexion.getEquipoBD().findEquipoEntities();
+        DefaultListModel<String> model = new DefaultListModel();
+        for(Equipo e : equiposBD)
+            model.addElement(e.getNombre());
+        return model;
+    }
+
+    public static void indices(int [] indices,String nombre,Calendar calendar)throws Exception{
+        equiposBD=conexion.getEquipoBD().findEquipoEntities();
+        equipos=new ArrayList();
+        for(int x=0;x<indices.length;x++)
+            equipos.add(equiposBD.get(x));
+        generarLiga(nombre, calendar);
+    }
+    
     public static void generarLiga(String nombre, Calendar fecha) throws Exception {
-        equipos = conexion.getEquipoBD().findEquipoEntities();
         formula = (((equipos.size() - 1) * equipos.size()) / ((equipos.size() - 1) * 2));
         PartidosEquipo = generarPartidos();
         boolean zig = true;
@@ -182,7 +225,7 @@ public class controlador {
             jornadas.add(j);
             conexion.getJornadaBD().create(j);
             for (int z = 0; z < formula / 2; z++) {
-                Partido p;
+                Partido p = null;
                 if (zig) {
                     for (int p1 = 0; p1 < formula / 2; p1++) {
                         p = new Partido(codigoPartido(), "Espana", j.getFechai());
@@ -208,14 +251,11 @@ public class controlador {
         System.out.println("");
 
     }
-    /**
-     * 
-     * @return retorna un array bidimensional con todas las combinaciones posibles de partidos
-     */
+    
     public static Equipo[][] generarPartidos() {
         boolean zig = true;
-        boolean stop;
-        int x = 0, y = 0, z = 0, t, cont = 0;
+        boolean stop = false;
+        int x = 0, y = 0, z = 0, t = 0, cont = 0;
         Equipo[][] equiposPartidos = new Equipo[(equipos.size()) * (equipos.size() - 1)][formula / 2];
         do {
             do {
@@ -252,10 +292,7 @@ public class controlador {
         } while (z < equiposPartidos.length);
         return equiposPartidos;
     }
-    /**
-     * 
-     * @param calendar parametro de entrada con la fecha de incio de la busqueda de fines de semana
-     */
+    
     public static void buscarFinesDeSemana(Calendar calendar) {
         finde = new ArrayList();
         int x = 0;
@@ -271,18 +308,14 @@ public class controlador {
         }
     }
 
-    /**
-     * 
-     * @throws Exception 
-     */
-    public static void emparejar() throws Exception {
+    public static List emparejar() throws Exception {
         boolean first = true, found = false, finished = false;
         equiposTemp = new ArrayList();
         int contador = 0, contacuatro = 0, contaTotal = 0;
         for (int x = 0; x < PartidosEquipo.length && finished == false; x++) {
             found = false;
             for (int y = 0; y < PartidosEquipo[y].length & found == false; y++) {
-                 if (!equiposTemp(PartidosEquipo[x][y]) && !equiposTemp(PartidosEquipo[x][y + 1]) && PartidosEquipo[x][y] != null && PartidosEquipo[x][y + 1] != null) {
+                if (!equiposTemp(PartidosEquipo[x][y]) && !equiposTemp(PartidosEquipo[x][y + 1]) && PartidosEquipo[x][y] != null && PartidosEquipo[x][y + 1] != null) {
                     equiposP = new ArrayList();
                     for (int g = 0; g < PartidosEquipo[y].length; g++) {
                         equiposP.add(PartidosEquipo[x][g]);
@@ -307,14 +340,10 @@ public class controlador {
                     found = true;
                 }
             }
-        }       
+        }
+        return equiposP;
     }
 
-    /**
-     * 
-     * @param e parametro de entrada de el equipo a buscar en el en ArrayList temporal de equipos repetidos
-     * @return retorna true o false si lo ha encontrado o no
-     */
     public static boolean equiposTemp(Equipo e) {
         int x;
         for (x = 0; x < equiposTemp.size() && !equiposTemp.get(x).equals(e); x++) {}
@@ -323,24 +352,14 @@ public class controlador {
         return true;
     }
 
-    /**
-     * 
-     * @return retorna el codigo maximo de la liga +1 
-     */
     public static int codigoLiga() {
         return Integer.parseInt(conexion.getLigaBD().autoincrement());
     }
-    /**
-     * 
-     * @return retorna el codigo maximo de las jornadas +1 
-     */
+
     public static int codigoJornada() {
         return Integer.parseInt(conexion.getJornadaBD().autoincrement());
     }
-    /**
-     * 
-     * @return retorna el codigo maximo de los partidos +1 
-     */
+
     public static int codigoPartido() {
         return Integer.parseInt(conexion.getPartidoBD().autoincrement());
     }
