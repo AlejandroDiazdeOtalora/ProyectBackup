@@ -16,6 +16,8 @@ import Views.JDError.JDError;
 import Views.JDInfo.JDInfo;
 import Views.VLiga.VLiga;
 import Views.VEquipo.VEquipo;
+import Views.VPuntos.VPuntos;
+import java.text.SimpleDateFormat;
 import javax.swing.DefaultListModel;
 
 /**
@@ -33,6 +35,7 @@ public class controlador {
     static List<Equipo> equiposBD;
     static List<Equipo> equipos;
     static List<Partido> partidos;
+    static List <Liga> ligasBD;
     static Equipo[][] PartidosEquipo;
     static List equiposP;
     static int posicion1;
@@ -40,6 +43,10 @@ public class controlador {
     public static int tipoE;
     static int formula;
     static ArrayList<Equipo> equiposTemp;
+    static Liga ligaBD;
+    static Jornadas jornadaBD;
+    static Partido partidoBD;
+    static Date date;
 
     /**
      * @param args the command line arguments
@@ -47,8 +54,7 @@ public class controlador {
     public static void main(String[] args) {
         // TODO code application logic here  
         try {
-            inicializar();
-
+            inicializar();                                              
             System.out.println("▒█░▒█ ▒█▀▀▄ ░█▀▀█ \n"
                              + "▒█░▒█ ▒█░▒█ ▒█▄▄█ \n"
                              + "░▀▄▄▀ ▒█▄▄▀ ▒█░▒█ \n"
@@ -63,12 +69,114 @@ public class controlador {
         }
 
     }
-
+    //YOOOOOOOOOOOOOOOOOOO
+    public static void toVPuntos(javax.swing.JFrame ventana){
+        ventana.setVisible(false);
+        VPuntos vpunt = new VPuntos();
+        vpunt.setVisible(true);
+    }   
+    public static void llenarLiga(javax.swing.JComboBox cb){       
+        for (Liga l : conexion.getLigaBD().findLigaEntities())
+            cb.addItem(l.getNombre());
+    }
+    public static void llenarJornadas(String liga, javax.swing.JComboBox cbJornadas){
+        ligaBD = conexion.getLigaBD().findByName(liga);       
+        boolean finish=false;
+        String cadena="";
+        ArrayList <Jornadas> jornadasTemp = new ArrayList();
+        int min,done=0;
+        Jornadas jMin=null;
+        for (int x=1;finish!=true;x++){
+            min=100;
+            for(Jornadas j : ligaBD.getJornadasCollection()){                
+                if(j.getCod()<min&&!jornadasReps(j,jornadasTemp)){
+                    min=j.getCod();
+                    jMin=j;                  
+                }                
+            }       
+            if(x==ligaBD.getJornadasCollection().size())
+                finish=true;
+            else{
+                if(jMin.getFechaf().before(date)){
+                    jornadasTemp.add(jMin);
+                    cadena=date(jMin.getFechai())+" "+date(jMin.getFechaf());
+                    cbJornadas.addItem(cadena);
+                }
+                                                     
+            }                    
+        }
+    }
+    public static boolean jornadasReps(Jornadas j,ArrayList <Jornadas> js){
+        int x;
+        for(x=0;x<js.size()&&!j.equals(js.get(x));x++){}
+        if(x==js.size())
+            return false;
+        return true;
+    }
+    public static void llenarPartidos(String fecha, javax.swing.JComboBox cbPartidos)throws Exception{
+        String cadena="";       
+        Date test=toDate(fecha);
+        jornadaBD = conexion.getJornadaBD().findByDate(test);
+        ArrayList <Partido> partidosTemp = new ArrayList();
+        boolean finish=false;
+        int min,done=0;
+        Partido pMin=null;
+        for(int x=1;finish!=true;x++){
+            min=100;
+            cadena="";
+            for(Partido p : jornadaBD.getPartidoCollection()){
+                if(p.getCod()<min&&!partidosReps(p,partidosTemp)){
+                    min = p.getCod();
+                    pMin = p;
+                }
+            }
+            if(x==jornadaBD.getPartidoCollection().size())
+                finish=true;
+            else{
+                if(pMin.getFecha().before(date)){
+                    partidosTemp.add(pMin);
+                    partidoBD=conexion.getPartidoBD().findPartido(pMin.getCod());
+                    for(Equipo e : partidoBD.getEquipoCollection()){
+                        cadena+=e.getNombre()+" ";                        
+                    }
+                    cbPartidos.addItem(cadena);
+                }                                                     
+            }
+        }
+    }
+    public static Date toDate(String fecha)throws Exception{
+        String cadena="";
+        int cont=0;
+        for(int x=0;x<fecha.length()&&cont<8;x++){//Aqui
+            if(Character.isDigit(fecha.charAt(x))){
+                cadena+=fecha.charAt(x);
+                cont++;
+            }else 
+                if(fecha.charAt(x)=='/')
+                    cadena+=fecha.charAt(x);
+        }
+        SimpleDateFormat fmt = new SimpleDateFormat("dd/MM/yyyy");
+        return fmt.parse(cadena);
+    }
+    public static String date(Date fecha){
+        SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");                            
+        String fechaS = df.format(fecha);
+        return fechaS;        
+    }
+    public static boolean partidosReps(Partido p, ArrayList <Partido> ps){
+        int x;
+        for(x=0;x<ps.size()&&!p.equals(ps.get(x));x++){}
+        if(x==ps.size())
+            return false;
+        return true;
+    }
+    //YOOOOOOOOOOOOOOOOOOO
     public static void inicializar(){
         conexion = new ConexionBD();
         jornadas = new ArrayList();
         partidos = new ArrayList();
         equiposP = new ArrayList();
+        date = new Date();
     }
     
     public static void toVLogin(Frame ventana) {
